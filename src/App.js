@@ -1,30 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Line, Scatter } from 'react-chartjs-2';
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  Title, 
-  Tooltip, 
-  Legend,
-  TimeScale
-} from 'chart.js';
-import 'chartjs-adapter-date-fns';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { fetchData } from './api';
 import './App.css';
 
-ChartJS.register(
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  Title, 
-  Tooltip, 
-  Legend,
-  TimeScale
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const App = () => {
   const [data, setData] = useState([]);
@@ -82,24 +62,43 @@ const App = () => {
   }, [data]);
 
   const filteredData = useMemo(() => {
-    return processedData.filter(item => 
-      item[lineVar1] != null && item[lineVar2] != null &&
-      !isNaN(parseFloat(item[lineVar1])) && !isNaN(parseFloat(item[lineVar2]))
-    );
+    return processedData.filter(item => item[lineVar1] != null && item[lineVar2] != null);
   }, [processedData, lineVar1, lineVar2]);
 
+  const calculateCorrelation = (x, y) => {
+    const n = x.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+    for (let i = 0; i < n; i++) {
+      sumX += x[i];
+      sumY += y[i];
+      sumXY += x[i] * y[i];
+      sumX2 += x[i] * x[i];
+      sumY2 += y[i] * y[i];
+    }
+    const numerator = n * sumXY - sumX * sumY;
+    const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+    return numerator / denominator;
+  };
+
+  const correlation = useMemo(() => {
+    const x = filteredData.map(item => parseFloat(item[lineVar1]));
+    const y = filteredData.map(item => parseFloat(item[lineVar2]));
+    return calculateCorrelation(x, y);
+  }, [filteredData, lineVar1, lineVar2]);
+
   const lineChartData = {
+    labels: filteredData.map(item => item.Date),
     datasets: [
       {
         label: variables[lineVar1],
-        data: filteredData.map(item => ({x: new Date(item.Date), y: parseFloat(item[lineVar1])})),
+        data: filteredData.map(item => item[lineVar1]),
         borderColor: 'rgb(75, 192, 192)',
         yAxisID: 'y',
         tension: 0.1
       },
       {
         label: variables[lineVar2],
-        data: filteredData.map(item => ({x: new Date(item.Date), y: parseFloat(item[lineVar2])})),
+        data: filteredData.map(item => item[lineVar2]),
         borderColor: 'rgb(255, 99, 132)',
         yAxisID: 'y1',
         tension: 0.1
@@ -112,9 +111,9 @@ const App = () => {
       {
         label: 'データポイント',
         data: filteredData.map(item => ({ 
-          x: parseFloat(item[lineVar1]), 
-          y: parseFloat(item[lineVar2]),
-          date: new Date(item.Date)
+          x: item[lineVar1], 
+          y: item[lineVar2],
+          date: item.Date
         })),
         backgroundColor: 'rgb(75, 192, 192)'
       }
@@ -140,10 +139,8 @@ const App = () => {
             if (label) {
               label += ': ';
             }
-            if (context.parsed.y !== null && !isNaN(context.parsed.y)) {
+            if (context.parsed.y !== null) {
               label += context.parsed.y.toFixed(2);
-            } else {
-              label += 'N/A';
             }
             return label;
           }
@@ -151,16 +148,6 @@ const App = () => {
       }
     },
     scales: {
-      x: {
-        type: 'time',
-        time: {
-          unit: 'day'
-        },
-        title: {
-          display: true,
-          text: '日付'
-        }
-      },
       y: {
         type: 'linear',
         display: true,
@@ -200,9 +187,9 @@ const App = () => {
           label: function(context) {
             const dataPoint = context.raw;
             return [
-              `日付: ${dataPoint.date.toLocaleDateString()}`,
-              `${variables[lineVar1]}: ${!isNaN(dataPoint.x) ? dataPoint.x.toFixed(2) : 'N/A'}`,
-              `${variables[lineVar2]}: ${!isNaN(dataPoint.y) ? dataPoint.y.toFixed(2) : 'N/A'}`
+              `日付: ${dataPoint.date}`,
+              `${variables[lineVar1]}: ${dataPoint.x.toFixed(2)}`,
+              `${variables[lineVar2]}: ${dataPoint.y.toFixed(2)}`
             ];
           }
         }
@@ -221,7 +208,24 @@ const App = () => {
           text: variables[lineVar2]
         }
       }
-    }
+    },
+    // 相関係数を表示するためのカスタムプラグイン
+    plugins: [{
+      id: 'correlationCoefficient',
+      afterDraw: (chart) => {
+        const ctx = chart.ctx;
+        const xAxis = chart.scales.x;
+        const yAxis = chart.scales.y;
+
+        ctx.save();
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'black';
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'top';
+        ctx.fillText(`相関係数: ${correlation.toFixed(3)}`, xAxis.right, yAxis.top);
+        ctx.restore();
+      }
+    }]
   };
 
   return (
@@ -252,7 +256,7 @@ const App = () => {
           </select>
         </div>
         <div className="chart-wrapper">
-          <Line key={`line-${lineVar1}-${lineVar2}`} data={lineChartData} options={lineOptions} />
+          <Line data={lineChartData} options={lineOptions} />
         </div>
       </div>
 
@@ -260,7 +264,7 @@ const App = () => {
       <div className="chart-container">
         <h2 className="chart-title">散布図</h2>
         <div className="chart-wrapper">
-          <Scatter key={`scatter-${lineVar1}-${lineVar2}`} data={scatterChartData} options={scatterOptions} />
+          <Scatter data={scatterChartData} options={scatterOptions} />
         </div>
       </div>
     </div>
