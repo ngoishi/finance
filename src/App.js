@@ -130,7 +130,7 @@ const App = () => {
     plugins: {
       title: {
         display: true,
-        text: '',
+        text: '金融データ可視化',
       },
       tooltip: {
         callbacks: {
@@ -193,6 +193,22 @@ const App = () => {
             ];
           }
         }
+      },
+      correlationCoefficient: {
+        id: 'correlationCoefficient',
+        afterDraw: (chart) => {
+          const ctx = chart.ctx;
+          const xAxis = chart.scales.x;
+          const yAxis = chart.scales.y;
+
+          ctx.save();
+          ctx.font = '12px Arial';
+          ctx.fillStyle = 'black';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'top';
+          ctx.fillText(`相関係数: ${correlation.toFixed(3)}`, xAxis.right, yAxis.top);
+          ctx.restore();
+        }
       }
     },
     scales: {
@@ -208,29 +224,12 @@ const App = () => {
           text: variables[lineVar2]
         }
       }
-    },
-    // 相関係数を表示するためのカスタムプラグイン
-    plugins: [{
-      id: 'correlationCoefficient',
-      afterDraw: (chart) => {
-        const ctx = chart.ctx;
-        const xAxis = chart.scales.x;
-        const yAxis = chart.scales.y;
-
-        ctx.save();
-        ctx.font = '12px Arial';
-        ctx.fillStyle = 'black';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'top';
-        ctx.fillText(`相関係数: ${correlation.toFixed(3)}`, xAxis.right, yAxis.top);
-        ctx.restore();
-      }
-    }]
+    }
   };
 
   return (
     <div className="app-container">
-      <h1 className="app-title">Financial Data Visualization</h1>
+      <h1 className="app-title">金融データ可視化</h1>
       
       {/* Line Chart */}
       <div className="chart-container">
