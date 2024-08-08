@@ -68,3 +68,12 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+## セットアップ
+
+1. このリポジトリをクローンします。
+2. `npm install`を実行して依存関係をインストールします。
+3. プロジェクトのルートに`.env`ファイルを作成し、以下の環境変数を設定します：
+
+REACT_APP_SPREADSHEET_ID=your_spreadsheet_id_here
+REACT_APP_GOOGLE_API_KEY=your_api_key_here
