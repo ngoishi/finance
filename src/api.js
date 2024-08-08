@@ -6,7 +6,7 @@ const API_KEY = process.env.REACT_APP_GOOGLE_API_KEY;
 export const fetchData = async () => {
   try {
     const response = await axios.get(
-      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Sheet1!A:L`,
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/シート1!A:L`,
       {
         params: {
           key: API_KEY
