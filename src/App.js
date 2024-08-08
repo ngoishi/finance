@@ -1,25 +1,230 @@
-import logo from './logo.svg';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Line, Scatter } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { fetchData } from './api';
 import './App.css';
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
+const App = () => {
+  const [data, setData] = useState([]);
+  const [lineVar1, setLineVar1] = useState('10YDEY.B');
+  const [lineVar2, setLineVar2] = useState('1YDEY.B');
+
+  useEffect(() => {
+    fetchData().then(setData).catch(console.error);
+  }, []);
+
+  const variables = {
+    '10YDEY.B': 'ドイツ10年国債利回り',
+    '1YDEY.B': 'ドイツ1年国債利回り',
+    '1YUSY.B': '米国１年国債利回り',
+    '10YUSY.B': '米国10年国債利回り',
+    '1YJPY.B': '日本1年国債利回り',
+    '10YJPY.B': '日本10年国債利回り',
+    'USDJPY': 'ドル円為替レート',
+    'EURJPY': 'ユーロ円為替レート',
+    'CL=F': '原油価格（WTI）',
+    'PL=F': 'プラチナ',
+    'XAUUSD': '金 (ozt) / 米ドル',
+    'US_SPREAD': '米国長短期金利差',
+    'DE_SPREAD': 'ドイツ長短期金利差',
+    'JP_SPREAD': '日本長短期金利差',
+    'JP_US_SPREAD': '日米金利差',
+    'JP_DE_SPREAD': '日独金利差'
+  };
+
+  const processedData = useMemo(() => {
+    if (data.length === 0) return [];
+
+    return data.map(item => {
+      const calculateSpread = (long, short) => 
+        (item[long] != null && item[short] != null) ? item[long] - item[short] : null;
+
+      const calculateCrossSpread = (country1, country2) => 
+        (item[country1] != null && item[country2] != null) ? item[country1] - item[country2] : null;
+
+      return {
+        ...item,
+        US_SPREAD: calculateSpread('10YUSY.B', '1YUSY.B'),
+        DE_SPREAD: calculateSpread('10YDEY.B', '1YDEY.B'),
+        JP_SPREAD: calculateSpread('10YJPY.B', '1YJPY.B'),
+        JP_US_SPREAD: calculateCrossSpread('10YUSY.B', '10YJPY.B'),
+        JP_DE_SPREAD: calculateCrossSpread('10YDEY.B', '10YJPY.B')
+      };
+    });
+  }, [data]);
+
+  const filteredData = useMemo(() => {
+    return processedData.filter(item => item[lineVar1] != null && item[lineVar2] != null);
+  }, [processedData, lineVar1, lineVar2]);
+
+  const lineChartData = {
+    labels: filteredData.map(item => item.Date),
+    datasets: [
+      {
+        label: variables[lineVar1],
+        data: filteredData.map(item => item[lineVar1]),
+        borderColor: 'rgb(75, 192, 192)',
+        yAxisID: 'y',
+        tension: 0.1
+      },
+      {
+        label: variables[lineVar2],
+        data: filteredData.map(item => item[lineVar2]),
+        borderColor: 'rgb(255, 99, 132)',
+        yAxisID: 'y1',
+        tension: 0.1
+      }
+    ]
+  };
+
+  const scatterChartData = {
+    datasets: [
+      {
+        label: 'データポイント',
+        data: filteredData.map(item => ({ 
+          x: item[lineVar1], 
+          y: item[lineVar2],
+          date: item.Date
+        })),
+        backgroundColor: 'rgb(75, 192, 192)'
+      }
+    ]
+  };
+
+  const lineOptions = {
+    responsive: true,
+    interaction: {
+      mode: 'index',
+      intersect: false,
+    },
+    stacked: false,
+    plugins: {
+      title: {
+        display: true,
+        text: '',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            let label = context.dataset.label || '';
+            if (label) {
+              label += ': ';
+            }
+            if (context.parsed.y !== null) {
+              label += context.parsed.y.toFixed(2);
+            }
+            return label;
+          }
+        }
+      }
+    },
+    scales: {
+      y: {
+        type: 'linear',
+        display: true,
+        position: 'left',
+        title: {
+          display: true,
+          text: variables[lineVar1]
+        }
+      },
+      y1: {
+        type: 'linear',
+        display: true,
+        position: 'right',
+        title: {
+          display: true,
+          text: variables[lineVar2]
+        },
+        grid: {
+          drawOnChartArea: false,
+        },
+      },
+    },
+  };
+
+  const scatterOptions = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
+      },
+      title: {
+        display: true,
+        text: '散布図',
+      },
+      tooltip: {
+        callbacks: {
+          label: function(context) {
+            const dataPoint = context.raw;
+            return [
+              `日付: ${dataPoint.date}`,
+              `${variables[lineVar1]}: ${dataPoint.x.toFixed(2)}`,
+              `${variables[lineVar2]}: ${dataPoint.y.toFixed(2)}`
+            ];
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        title: {
+          display: true,
+          text: variables[lineVar1]
+        }
+      },
+      y: {
+        title: {
+          display: true,
+          text: variables[lineVar2]
+        }
+      }
+    }
+  };
+
+ return (
+    <div className="app-container">
+      <h1 className="app-title">Financial Data Visualization</h1>
+      
+      {/* Line Chart */}
+      <div className="chart-container">
+        <h2 className="chart-title">折れ線グラフ（主軸・副軸）</h2>
+        <div className="select-container">
+          <select 
+            value={lineVar1} 
+            onChange={(e) => setLineVar1(e.target.value)}
+            className="variable-select"
+          >
+            {Object.entries(variables).map(([key, value]) => (
+              <option key={key} value={key}>{value}</option>
+            ))}
+          </select>
+          <select 
+            value={lineVar2} 
+            onChange={(e) => setLineVar2(e.target.value)}
+            className="variable-select"
+          >
+            {Object.entries(variables).map(([key, value]) => (
+              <option key={key} value={key}>{value}</option>
+            ))}
+          </select>
+        </div>
+        <div className="chart-wrapper">
+          <Line data={lineChartData} options={lineOptions} />
+        </div>
+      </div>
+
+      {/* Scatter Plot */}
+      <div className="chart-container">
+        <h2 className="chart-title">散布図</h2>
+        <div className="chart-wrapper">
+          <Scatter data={scatterChartData} options={scatterOptions} />
+        </div>
+      </div>
     </div>
   );
-}
+};
 
 export default App;
