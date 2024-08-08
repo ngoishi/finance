@@ -131,7 +131,7 @@ const App = () => {
     plugins: {
       title: {
         display: true,
-        text: '金融データ可視化',
+        text: '',
       },
       tooltip: {
         callbacks: {
@@ -226,7 +226,7 @@ const App = () => {
 
   return (
     <div className="app-container">
-      <h1 className="app-title">金融データ可視化</h1>
+      <h1 className="app-title">Financial Data Visualization</h1>
       
       {/* Line Chart */}
       <div className="chart-container">
