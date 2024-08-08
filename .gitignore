@@ -21,3 +21,15 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# 環境変数ファイルを除外
+.env
+
+# ログファイルを除外
+*.log
+
+# node_modulesディレクトリを除外
+node_modules/
+
+# 特定のファイルを除外（例：config.js）
+config.js
