@@ -10,7 +10,7 @@ export const fetchData = async () => {
     console.log('SPREADSHEET_ID:', SPREADSHEET_ID);
     console.log('API_KEY:', API_KEY ? 'Set (not shown for security)' : 'Not set');
 
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Sheet1!A:L`;
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/Sheet1!A:N`;
     console.log('Fetching from URL:', url);
 
     const response = await axios.get(url, {

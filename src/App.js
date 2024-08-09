@@ -31,9 +31,12 @@ const App = () => {
   const [lineVar1, setLineVar1] = useState('10YDEY.B');
   const [lineVar2, setLineVar2] = useState('1YDEY.B');
 
-  useEffect(() => {
-    fetchData().then(setData).catch(console.error);
-  }, []);
+useEffect(() => {
+  fetchData().then(fetchedData => {
+    console.log('Fetched data:', fetchedData);
+    setData(fetchedData);
+  }).catch(console.error);
+}, []);
 
   const variables = {
     '10YDEY.B': 'ドイツ10年国債利回り',
@@ -51,7 +54,9 @@ const App = () => {
     'DE_SPREAD': 'ドイツ長短期金利差',
     'JP_SPREAD': '日本長短期金利差',
     'JP_US_SPREAD': '日米金利差',
-    'JP_DE_SPREAD': '日独金利差'
+    'JP_DE_SPREAD': '日独金利差',
+    'NIKKEI': '日経平均株価',
+    'DOW': '米国ダウ平均株価'
   };
 
   const processedData = useMemo(() => {
@@ -76,7 +81,9 @@ const App = () => {
         DE_SPREAD: calculateSpread('10YDEY.B', '1YDEY.B'),
         JP_SPREAD: calculateSpread('10YJPY.B', '1YJPY.B'),
         JP_US_SPREAD: calculateCrossSpread('10YUSY.B', '10YJPY.B'),
-        JP_DE_SPREAD: calculateCrossSpread('10YDEY.B', '10YJPY.B')
+        JP_DE_SPREAD: calculateCrossSpread('10YDEY.B', '10YJPY.B'),
+    　  NIKKEI: item.NIKKEI,
+      　DOW: item.DOW
       };
     });
   }, [data]);
