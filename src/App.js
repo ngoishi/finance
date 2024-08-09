@@ -100,6 +100,26 @@ const App = () => {
     );
   }, [processedData, lineVar1, lineVar2]);
 
+  const calculateCorrelation = (x, y) => {
+    const n = x.length;
+    const sum_x = x.reduce((a, b) => a + b, 0);
+    const sum_y = y.reduce((a, b) => a + b, 0);
+    const sum_xy = x.map((xi, i) => xi * y[i]).reduce((a, b) => a + b, 0);
+    const sum_x2 = x.map(xi => xi * xi).reduce((a, b) => a + b, 0);
+    const sum_y2 = y.map(yi => yi * yi).reduce((a, b) => a + b, 0);
+
+    const numerator = n * sum_xy - sum_x * sum_y;
+    const denominator = Math.sqrt((n * sum_x2 - sum_x * sum_x) * (n * sum_y2 - sum_y * sum_y));
+
+    return numerator / denominator;
+  };
+
+  const correlation = useMemo(() => {
+    const x = filteredData.map(item => parseFloat(item[lineVar1]));
+    const y = filteredData.map(item => parseFloat(item[lineVar2]));
+    return calculateCorrelation(x, y);
+  }, [filteredData, lineVar1, lineVar2]);
+
   const lineChartData = {
     datasets: [
       {
@@ -119,36 +139,9 @@ const App = () => {
     ]
   };
 
-  const scatterChartData = {
-    datasets: [
-      {
-        label: 'データポイント',
-        data: filteredData.map(item => ({ 
-          x: parseFloat(item[lineVar1]), 
-          y: parseFloat(item[lineVar2]),
-          date: new Date(item.Date)
-        })),
-        backgroundColor: 'rgb(75, 192, 192)'
-      }
-    ]
-  };
-
-  const commonOptions = {
+  const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: windowWidth <= 768 ? 'bottom' : 'top',
-      },
-      tooltip: {
-        mode: 'index',
-        intersect: false,
-      },
-    },
-  };
-
-  const lineOptions = {
-    ...commonOptions,
     interaction: {
       mode: 'index',
       intersect: false,
@@ -187,10 +180,34 @@ const App = () => {
         },
       },
     },
+    plugins: {
+      legend: {
+        position: windowWidth <= 768 ? 'bottom' : 'top',
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+      }
+    }
+  };
+
+  const scatterChartData = {
+    datasets: [
+      {
+        label: 'データポイント',
+        data: filteredData.map(item => ({ 
+          x: parseFloat(item[lineVar1]), 
+          y: parseFloat(item[lineVar2]),
+          date: new Date(item.Date)
+        })),
+        backgroundColor: 'rgb(75, 192, 192)'
+      }
+    ]
   };
 
   const scatterOptions = {
-    ...commonOptions,
+    responsive: true,
+    maintainAspectRatio: false,
     scales: {
       x: {
         title: {
@@ -204,6 +221,19 @@ const App = () => {
           text: variables[lineVar2]
         }
       }
+    },
+    plugins: {
+      legend: {
+        position: windowWidth <= 768 ? 'bottom' : 'top',
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const point = context.raw;
+            return `${variables[lineVar1]}: ${point.x.toFixed(2)}, ${variables[lineVar2]}: ${point.y.toFixed(2)}, 日付: ${point.date.toLocaleDateString()}`;
+          }
+        }
+      }
     }
   };
 
@@ -211,29 +241,36 @@ const App = () => {
     <div className="app-container">
       <h1 className="app-title">Financial Data Visualization</h1>
       
+      {/* Variable Selection */}
+      <div className="select-container">
+        <select 
+          value={lineVar1} 
+          onChange={(e) => setLineVar1(e.target.value)}
+          className="variable-select"
+        >
+          {Object.entries(variables).map(([key, value]) => (
+            <option key={key} value={key}>{value}</option>
+          ))}
+        </select>
+        <select 
+          value={lineVar2} 
+          onChange={(e) => setLineVar2(e.target.value)}
+          className="variable-select"
+        >
+          {Object.entries(variables).map(([key, value]) => (
+            <option key={key} value={key}>{value}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Correlation Coefficient Display */}
+      <div className="correlation-display">
+        <h3>相関係数: {correlation.toFixed(2)}</h3>
+      </div>
+
       {/* Line Chart */}
       <div className="chart-container">
         <h2 className="chart-title">折れ線グラフ（主軸・副軸）</h2>
-        <div className="select-container">
-          <select 
-            value={lineVar1} 
-            onChange={(e) => setLineVar1(e.target.value)}
-            className="variable-select"
-          >
-            {Object.entries(variables).map(([key, value]) => (
-              <option key={key} value={key}>{value}</option>
-            ))}
-          </select>
-          <select 
-            value={lineVar2} 
-            onChange={(e) => setLineVar2(e.target.value)}
-            className="variable-select"
-          >
-            {Object.entries(variables).map(([key, value]) => (
-              <option key={key} value={key}>{value}</option>
-            ))}
-          </select>
-        </div>
         <div className="chart-wrapper">
           <Line key={`line-${lineVar1}-${lineVar2}-${windowWidth}`} data={lineChartData} options={lineOptions} />
         </div>
