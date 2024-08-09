@@ -30,13 +30,18 @@ const App = () => {
   const [data, setData] = useState([]);
   const [lineVar1, setLineVar1] = useState('10YDEY.B');
   const [lineVar2, setLineVar2] = useState('1YDEY.B');
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
-useEffect(() => {
-  fetchData().then(fetchedData => {
-    console.log('Fetched data:', fetchedData);
-    setData(fetchedData);
-  }).catch(console.error);
-}, []);
+  useEffect(() => {
+    fetchData().then(fetchedData => {
+      console.log('Fetched data:', fetchedData);
+      setData(fetchedData);
+    }).catch(console.error);
+
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const variables = {
     '10YDEY.B': 'ドイツ10年国債利回り',
@@ -82,8 +87,8 @@ useEffect(() => {
         JP_SPREAD: calculateSpread('10YJPY.B', '1YJPY.B'),
         JP_US_SPREAD: calculateCrossSpread('10YUSY.B', '10YJPY.B'),
         JP_DE_SPREAD: calculateCrossSpread('10YDEY.B', '10YJPY.B'),
-    　  NIKKEI: item.NIKKEI,
-      　DOW: item.DOW
+        NIKKEI: item.NIKKEI,
+        DOW: item.DOW
       };
     });
   }, [data]);
@@ -128,35 +133,27 @@ useEffect(() => {
     ]
   };
 
-  const lineOptions = {
+  const commonOptions = {
     responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: windowWidth <= 768 ? 'bottom' : 'top',
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+      },
+    },
+  };
+
+  const lineOptions = {
+    ...commonOptions,
     interaction: {
       mode: 'index',
       intersect: false,
     },
     stacked: false,
-    plugins: {
-      title: {
-        display: true,
-        text: '',
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            let label = context.dataset.label || '';
-            if (label) {
-              label += ': ';
-            }
-            if (context.parsed.y !== null && !isNaN(context.parsed.y)) {
-              label += context.parsed.y.toFixed(2);
-            } else {
-              label += 'N/A';
-            }
-            return label;
-          }
-        }
-      }
-    },
     scales: {
       x: {
         type: 'time',
@@ -193,28 +190,7 @@ useEffect(() => {
   };
 
   const scatterOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top',
-      },
-      title: {
-        display: true,
-        text: '散布図',
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context) {
-            const dataPoint = context.raw;
-            return [
-              `日付: ${dataPoint.date.toLocaleDateString()}`,
-              `${variables[lineVar1]}: ${!isNaN(dataPoint.x) ? dataPoint.x.toFixed(2) : 'N/A'}`,
-              `${variables[lineVar2]}: ${!isNaN(dataPoint.y) ? dataPoint.y.toFixed(2) : 'N/A'}`
-            ];
-          }
-        }
-      }
-    },
+    ...commonOptions,
     scales: {
       x: {
         title: {
@@ -259,7 +235,7 @@ useEffect(() => {
           </select>
         </div>
         <div className="chart-wrapper">
-          <Line key={`line-${lineVar1}-${lineVar2}`} data={lineChartData} options={lineOptions} />
+          <Line key={`line-${lineVar1}-${lineVar2}-${windowWidth}`} data={lineChartData} options={lineOptions} />
         </div>
       </div>
 
@@ -267,7 +243,7 @@ useEffect(() => {
       <div className="chart-container">
         <h2 className="chart-title">散布図</h2>
         <div className="chart-wrapper">
-          <Scatter key={`scatter-${lineVar1}-${lineVar2}`} data={scatterChartData} options={scatterOptions} />
+          <Scatter key={`scatter-${lineVar1}-${lineVar2}-${windowWidth}`} data={scatterChartData} options={scatterOptions} />
         </div>
       </div>
     </div>
